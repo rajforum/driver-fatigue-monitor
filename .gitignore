@@ -1,0 +1,41 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+
+# Environment variables file
+.env
+
+# Flask instance folder
+instance/
+
+# Python virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# Database files
+*.sqlite3
+
+# Logs
+*.log
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Pytest cache
+.cache/
+
+# Editor backup files
+*~
+*.swp
+
+# MacOS system files
+.DS_Store
+
+# PyCharm project files
+.idea/
+
+# VS Code project files
+.vscode/
