@@ -3,7 +3,7 @@ from firebase_admin import credentials, firestore
 
 def init_firebase():
     # Path to your Firebase service account credentials
-    cred = credentials.Certificate("./static/driver-fatigue-monitor-firebase-adminsdk.json")
+    cred = credentials.Certificate("app/static/driver-fatigue-monitor-firebase-adminsdk.json")
     
     # Initialize the Firebase app
     if not firebase_admin._apps:
