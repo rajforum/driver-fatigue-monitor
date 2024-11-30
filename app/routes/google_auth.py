@@ -1,5 +1,5 @@
 import os
-from definition import CLIENT_SECRET_PATH, AUTH2_REDIRECT_URI, CONFIG_DIR
+from definition import AUTH2_REDIRECT_URI, CONFIG_DIR
 from flask import Blueprint, redirect, url_for, session, request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
