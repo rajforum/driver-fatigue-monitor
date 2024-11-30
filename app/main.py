@@ -1,15 +1,14 @@
-from dotenv import load_dotenv
 from app import create_app
+from definition import SSL_CERT_PATH, SSL_KEY_PATH, HOST, PORT, IS_DEVELOPMENT
 from app.modules.data_collection import capture_video
 
-
-load_dotenv()  # Load environment variables
-
-app = create_app()
-
 if __name__ == 'app.main':
-    app.run(debug=True)  # Set debug=False in production
+    app = create_app()
 
-    # Start the camera capture when the app is run
-    capture_video()
+    app.run(
+        ssl_context=(SSL_CERT_PATH, SSL_KEY_PATH),
+        host=HOST,
+        port=PORT,
+        debug=IS_DEVELOPMENT
+    )
 

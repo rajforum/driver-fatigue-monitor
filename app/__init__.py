@@ -1,24 +1,34 @@
+import os
+import logging
 from flask import Flask
-from .utils.firebase_client import init_firebase
+from dotenv import load_dotenv
+from app.core.logging_config import setup_logging
+from app.routes.google_auth import google_auth_bp
+from app.routes.fatigue import fatigue_bp
+from app.utils.firebase_client import init_firebase
 
-# from .routes import fatigue
 
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' # For development only to allow HTTP
+
+# Load environment variables
+load_dotenv()  
+
+# Create, configure, register blueprints and return the Flask app
 def create_app():
     app = Flask(__name__)
-    # app.config.from_mapping(
-    #     SECRET_KEY='dev',  # Change this in production
-    # )
+    app.secret_key = os.getenv("SECRET_KEY")
 
-    # Register blueprints
-    # app.register_blueprint(fatigue.bp)
+    setup_logging()
 
-     # Initialize Firebase client
+    # Example logging statements
+    logger = logging.getLogger(__name__)
+    logger.info("App Starting ::: Fatigue Monitoring Solution is starting...")
+    
+    # Initialize Firebase client
     db = init_firebase()
-    
-    # Additional app setup, like routes or blueprints
-    @app.route('/')
-    def home():
-        return "Driver Fatigue Monitoring Solution"
-    
+   
+    # Register blueprints
+    app.register_blueprint(google_auth_bp)
+    app.register_blueprint(fatigue_bp)
 
     return app
