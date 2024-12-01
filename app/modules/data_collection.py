@@ -3,15 +3,16 @@
 import cv2
 from flask import Response
 from app.modules.fatigue_detector import FatigueDetector
-from app.socket_events import update_metrics
 
 
 def generate_frames():
     """Generate frames from camera for video streaming."""
+    from app.socket_events import update_metrics
+    
     cap = cv2.VideoCapture(0)
     detector = FatigueDetector()  # Create a single detector instance
     
-    while True:
+    while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
@@ -19,8 +20,9 @@ def generate_frames():
         # Process the frame and get metrics
         processed_frame, metrics = detector.process_frame(frame)
         
-        # Update and emit metrics via Socket.IO
-        # update_metrics(metrics)
+        # Emit metrics via Socket.IO (you'll need to implement this)
+        # socketio.emit('metrics_update', metrics)
+        update_metrics(metrics)
         
         # Convert frame to bytes
         _, buffer = cv2.imencode('.jpg', processed_frame)

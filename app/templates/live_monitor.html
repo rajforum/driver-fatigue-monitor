@@ -37,6 +37,56 @@
                         </div>
                     </div>
                 </div>
+
+                 <!-- New Metrics Summary Card -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Current Detection Status</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <!-- Alertness Status -->
+                        <div class="p-4 rounded-lg" id="alertnessCard">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-600">Alertness Level</span>
+                                <span class="px-2 py-1 text-xs rounded-full" id="alertnessStatus">Normal</span>
+                            </div>
+                            <div class="text-2xl font-bold" id="alertnessValue">--%</div>
+                        </div>
+
+                        <!-- Blink Rate -->
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600 mb-2">Blink Rate</div>
+                            <div class="text-2xl font-bold" id="blinkRateValue">--</div>
+                            <div class="text-xs text-gray-500">blinks/minute</div>
+                        </div>
+
+                        <!-- Eye Closure -->
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600 mb-2">Eye Closure</div>
+                            <div class="text-2xl font-bold" id="eyeClosureValue">--</div>
+                            <div class="text-xs text-gray-500">seconds</div>
+                        </div>
+
+                        <!-- Head Position -->
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600 mb-2">Head Position</div>
+                            <div class="text-2xl font-bold" id="headPositionValue">--</div>
+                        </div>
+
+                        <!-- Detection Status -->
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600 mb-2">Detection Status</div>
+                            <div class="flex items-center">
+                                <div id="detectionStatusDot" class="h-3 w-3 rounded-full mr-2"></div>
+                                <div class="text-lg font-bold" id="detectionStatusValue">Active</div>
+                            </div>
+                        </div>
+
+                        <!-- Last Updated -->
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600 mb-2">Last Updated</div>
+                            <div class="text-lg font-bold" id="lastUpdatedValue">--:--:--</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Column - Metrics -->
@@ -81,82 +131,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script>
-        // Initialize Socket.IO
-        const socket = io();
-        
-        socket.on('connect', () => {
-            console.log('Connected to server');
-            document.getElementById('statusDot').classList.remove('bg-red-500');
-            document.getElementById('statusDot').classList.add('bg-green-500');
-        });
-        
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
-            document.getElementById('statusDot').classList.remove('bg-green-500');
-            document.getElementById('statusDot').classList.add('bg-red-500');
-        });
-        
-        socket.on('metrics_update', (data) => {
-            // Update heart rate
-            if (data.heartRate) {
-                document.getElementById('heartRate').textContent = `${data.heartRate} BPM`;
-            }
-            
-            // Update alertness
-            if (data.alertness) {
-                document.getElementById('alertness').textContent = `${data.alertness}%`;
-            }
-            
-            // Update other metrics
-            if (data.blinkRate) {
-                document.getElementById('blinkRate').textContent = data.blinkRate;
-            }
-            if (data.eyeClosure) {
-                document.getElementById('eyeClosure').textContent = data.eyeClosure;
-            }
-            if (data.headPosition) {
-                document.getElementById('headPosition').textContent = data.headPosition;
-            }
-            
-            // Update alert status with color
-            if (data.alertStatus) {
-                const statusElement = document.getElementById('alertStatus');
-                statusElement.textContent = `Alert Status: ${data.alertStatus}`;
-                statusElement.className = `text-sm ${data.alertStatus.toLowerCase() === 'normal' ? 'text-green-400' : 'text-red-400'}`;
-            }
-        });
-        
-        // Request metrics update every 5 seconds
-        setInterval(() => {
-            socket.emit('request_metrics');
-        }, 5000);
-        
-        socket.on('metrics_error', (error) => {
-            console.error('Metrics error:', error);
-            // Show error in UI
-            document.getElementById('alertStatus').textContent = `Error: ${error.message}`;
-            document.getElementById('alertStatus').className = 'text-sm text-red-400';
-        });
-        
-        // Add reconnection handling
-        socket.on('connect_error', (error) => {
-            console.error('Connection error:', error);
-            document.getElementById('statusDot').classList.remove('bg-green-500');
-            document.getElementById('statusDot').classList.add('bg-red-500');
-            document.getElementById('monitorStatus').textContent = 'Connection Error';
-        });
-        
-        // Add automatic reconnection
-        socket.on('reconnect_attempt', () => {
-            document.getElementById('monitorStatus').textContent = 'Reconnecting...';
-        });
-        
-        socket.on('reconnect', () => {
-            document.getElementById('monitorStatus').textContent = 'Monitoring Active';
-            document.getElementById('statusDot').classList.remove('bg-red-500');
-            document.getElementById('statusDot').classList.add('bg-green-500');
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/monitor.js') }}"></script>
 </body>
 </html> 
