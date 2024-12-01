@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Monitoring - Driver Fatigue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="font-bold text-xl text-gray-800">Driver Fatigue Monitor</div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600">{{ session.get('user_info', {}).get('name', 'User') }}</span>
+                <a href="{{ url_for('google_auth.logout') }}" class="text-sm text-red-600 hover:text-red-800">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex gap-6">
+            <!-- Left Column - Video Feed -->
+            <div class="w-3/5">
+                <div class="bg-black rounded-lg overflow-hidden shadow-lg">
+                    <div class="aspect-w-16 aspect-h-9 bg-gray-900">
+                        <img id="videoFeed" src="{{ url_for('ui_screen.login_required_video_feed') }}" alt="Live Feed" class="w-full h-full object-cover">
+                    </div>
+                    <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <div id="statusDot" class="h-3 w-3 bg-green-500 rounded-full"></div>
+                            <span id="monitorStatus">Monitoring Active</span>
+                        </div>
+                        <div class="text-sm">
+                            <span id="alertStatus" class="text-green-400">Alert Status: Normal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Metrics -->
+            <div class="w-2/5 space-y-6">
+                <!-- Current Status Card -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Current Status</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="text-sm text-gray-600">Heart Rate</div>
+                            <div id="heartRate" class="text-2xl font-bold text-gray-800">-- BPM</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="text-sm text-gray-600">Alertness</div>
+                            <div id="alertness" class="text-2xl font-bold text-green-600">--%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Metrics -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Real-time Metrics</h2>
+                    <div class="space-y-4">
+                        <div id="metricsContainer" class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Blink Rate</span>
+                                <span id="blinkRate" class="text-sm font-medium">--</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Eye Closure Duration</span>
+                                <span id="eyeClosure" class="text-sm font-medium">--</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Head Position</span>
+                                <span id="headPosition" class="text-sm font-medium">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // Initialize Socket.IO
+        const socket = io();
+        
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            document.getElementById('statusDot').classList.remove('bg-red-500');
+            document.getElementById('statusDot').classList.add('bg-green-500');
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            document.getElementById('statusDot').classList.remove('bg-green-500');
+            document.getElementById('statusDot').classList.add('bg-red-500');
+        });
+        
+        socket.on('metrics_update', (data) => {
+            // Update heart rate
+            if (data.heartRate) {
+                document.getElementById('heartRate').textContent = `${data.heartRate} BPM`;
+            }
+            
+            // Update alertness
+            if (data.alertness) {
+                document.getElementById('alertness').textContent = `${data.alertness}%`;
+            }
+            
+            // Update other metrics
+            if (data.blinkRate) {
+                document.getElementById('blinkRate').textContent = data.blinkRate;
+            }
+            if (data.eyeClosure) {
+                document.getElementById('eyeClosure').textContent = data.eyeClosure;
+            }
+            if (data.headPosition) {
+                document.getElementById('headPosition').textContent = data.headPosition;
+            }
+            
+            // Update alert status with color
+            if (data.alertStatus) {
+                const statusElement = document.getElementById('alertStatus');
+                statusElement.textContent = `Alert Status: ${data.alertStatus}`;
+                statusElement.className = `text-sm ${data.alertStatus.toLowerCase() === 'normal' ? 'text-green-400' : 'text-red-400'}`;
+            }
+        });
+        
+        // Request metrics update every 5 seconds
+        setInterval(() => {
+            socket.emit('request_metrics');
+        }, 5000);
+        
+        socket.on('metrics_error', (error) => {
+            console.error('Metrics error:', error);
+            // Show error in UI
+            document.getElementById('alertStatus').textContent = `Error: ${error.message}`;
+            document.getElementById('alertStatus').className = 'text-sm text-red-400';
+        });
+        
+        // Add reconnection handling
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            document.getElementById('statusDot').classList.remove('bg-green-500');
+            document.getElementById('statusDot').classList.add('bg-red-500');
+            document.getElementById('monitorStatus').textContent = 'Connection Error';
+        });
+        
+        // Add automatic reconnection
+        socket.on('reconnect_attempt', () => {
+            document.getElementById('monitorStatus').textContent = 'Reconnecting...';
+        });
+        
+        socket.on('reconnect', () => {
+            document.getElementById('monitorStatus').textContent = 'Monitoring Active';
+            document.getElementById('statusDot').classList.remove('bg-red-500');
+            document.getElementById('statusDot').classList.add('bg-green-500');
+        });
+    </script>
+</body>
+</html> 

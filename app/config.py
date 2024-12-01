@@ -1,0 +1,3 @@
+class Config:
+    # Other configs...
+    USE_MOCK_DATA = True  # Switch to False to use real data 

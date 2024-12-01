@@ -11,4 +11,3 @@ if __name__ == 'app.main':
         port=PORT,
         debug=IS_DEVELOPMENT
     )
-

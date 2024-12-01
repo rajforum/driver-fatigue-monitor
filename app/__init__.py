@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 from app.core.logging_config import setup_logging
 from app.routes.google_auth import google_auth_bp
 from app.routes.fatigue import fatigue_bp
+from app.routes.ui.screen import ui_screen_bp
 from app.utils.firebase_client import FirebaseClient
+from app.services.websocket import init_websocket, socketio
 
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' # For development only to allow HTTP
@@ -30,5 +32,9 @@ def create_app():
     # Register blueprints
     app.register_blueprint(google_auth_bp)
     app.register_blueprint(fatigue_bp)
+    app.register_blueprint(ui_screen_bp)
+
+    # Initialize WebSocket
+    init_websocket(app)
 
     return app
