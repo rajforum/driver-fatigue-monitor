@@ -1,14 +1,5 @@
 import os
 
-# Environment variables
-ENVIRONMENT = os.getenv("ENVIRONMENT")
-IS_DEVELOPMENT = ENVIRONMENT == "development"
-
-HOST = os.getenv("HOST")
-PORT = os.getenv("PORT")
-HOST_URL = os.getenv("HOST_URL")
-AUTH2_REDIRECT_URI = os.getenv("AUTH2_REDIRECT_URI")
-
 # Project directory and sub-directory paths
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 

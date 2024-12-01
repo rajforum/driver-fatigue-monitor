@@ -54,6 +54,29 @@
                 </div>
             </div>
         </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <h3 class="text-lg font-semibold mb-4">Connected Services</h3>
+            
+            <!-- Fitbit Connection Status -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <img src="/static/img/fitbit-logo.png" alt="Fitbit" class="h-8 w-8 mr-3">
+                    <span class="text-gray-700">Fitbit</span>
+                </div>
+                {% if session.get('fitbit_token') %}
+                    <a href="{{ url_for('fitbit_auth.disconnect') }}" 
+                       class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                        Disconnect
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('fitbit_auth.login') }}" 
+                       class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Connect
+                    </a>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -62,10 +85,10 @@
         async function updateDashboard() {
             try {
                 const [heartRate, sleep, activity, fatigue] = await Promise.all([
-                    fetch('/fatigue/fitness_data').then(r => r.json()),
-                    fetch('/fatigue/sleep_data').then(r => r.json()),
-                    fetch('/fatigue/activity_data').then(r => r.json()),
-                    fetch('/fatigue/analyze_fatigue').then(r => r.json())
+                    fetch('/api/fatigue/fitness_data').then(r => r.json()),
+                    fetch('/api/fatigue/sleep_data').then(r => r.json()),
+                    fetch('/api/fatigue/activity_data').then(r => r.json()),
+                    fetch('/api/fatigue/analyze_fatigue').then(r => r.json())
                 ]);
 
                 document.getElementById('heartRateData').innerHTML = JSON.stringify(heartRate, null, 2);
@@ -79,7 +102,7 @@
 
         // Update dashboard every 5 minutes
         updateDashboard();
-        setInterval(updateDashboard, 300000);
+        setInterval(updateDashboard, 10000);
     </script>
 </body>
 </html> 

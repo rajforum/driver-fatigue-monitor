@@ -3,67 +3,51 @@
 import cv2
 from flask import Response
 from app.modules.fatigue_detector import FatigueDetector
+from app.services.performance import PerformanceMetrics
+import logging
 
+logger = logging.getLogger(__name__)
+
+# Initialize performance metrics
+performance_tracker = PerformanceMetrics()
 
 def generate_frames():
     """Generate frames from camera for video streaming."""
-    from app.socket_events import update_metrics
-    
-    cap = cv2.VideoCapture(0)
-    detector = FatigueDetector()  # Create a single detector instance
-    
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+    try:
+        from app.services.service_manager import ServiceManager
+        socket_service = ServiceManager.get_instance().sockets
+        cap = cv2.VideoCapture(0)
+        detector = FatigueDetector()
+        
+        while cap.isOpened():
+            performance_tracker.start_processing()
             
-        # Process the frame and get metrics
-        processed_frame, metrics = detector.process_frame(frame)
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            processed_frame, metrics = detector.process_frame(frame)
+            
+            try:
+                socket_service.emit_metrics(metrics)
+            except Exception as e:
+                logger.error(f"Error emitting metrics: {str(e)}")
+            
+            _, buffer = cv2.imencode('.jpg', processed_frame)
+            frame_bytes = buffer.tobytes()
+            
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            
+            performance_tracker.end_processing()
         
-        # Emit metrics via Socket.IO (you'll need to implement this)
-        # socketio.emit('metrics_update', metrics)
-        update_metrics(metrics)
-        
-        # Convert frame to bytes
-        _, buffer = cv2.imencode('.jpg', processed_frame)
-        frame_bytes = buffer.tobytes()
-        
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-    
-    cap.release()
+        cap.release()
+    except Exception as e:
+        logger.error(f"Error in generate_frames: {str(e)}")
+        if 'cap' in locals():
+            cap.release()
 
-def capture_video():
-    """Return a streaming response for the camera feed."""
-    return Response(
-        generate_frames(),
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
-
-def capture_video_old():
-    """Capture video from the camera and process frames for fatigue detection."""
-    # Open the video feed (or you can replace this with a video file path)
-    cap = cv2.VideoCapture(0) 
-    detector = FatigueDetector() 
-
-    while cap.isOpened():
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to grab frame")
-            break
-
-        # Process the frame for eye and head detection
-        processed_frame = detector.process_frame(frame)
-
-        # Display the resulting frame with labels
-        cv2.imshow('Face and Eye Detection with Labels', processed_frame)
-
-        # Break the loop on 'q' key press
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    # Release the capture and close all windows
-    cap.release()
-    cv2.destroyAllWindows()
+def get_current_performance():
+    """Get current performance metrics"""
+    return performance_tracker.get_metrics()
 

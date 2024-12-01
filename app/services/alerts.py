@@ -20,6 +20,8 @@ class AlertService:
             'alertness': {'min': 60},
             'heart_rate': {'min': 50, 'max': 120}
         }
+        self.pending_alerts = []
+        self.active_alerts = set()
 
     def check_metrics(self, metrics: Dict, user_email: str):
         """Check metrics against thresholds and emit alerts if needed"""
@@ -106,17 +108,30 @@ class AlertService:
             return "Alert condition detected"
 
     def _save_alert(self, user_email: str, level: str, message: str, metrics: Dict):
-        """Save alert to Firebase"""
+        """Save alert to Firebase with retry mechanism"""
         try:
             alert_ref = self.db.collection('alerts').document(user_email)
-            alert_ref.collection('history').add({
+            alert_data = {
                 'level': level,
                 'message': message,
                 'metrics': metrics,
                 'timestamp': datetime.utcnow()
-            })
+            }
+            
+            # Try to save alert
+            alert_ref.collection('history').add(alert_data)
+            
+            # Add to active alerts if high priority
+            if level in ['warning', 'danger']:
+                alert_id = f"{user_email}_{datetime.utcnow().timestamp()}"
+                self.active_alerts.add(alert_id)
+                alert_data['alert_id'] = alert_id
+                
+            return True
         except Exception as e:
-            logger.error(f"Error saving alert: {str(e)}")
+            logger.error(f"Error saving alert, adding to pending: {str(e)}")
+            self.add_pending_alert(user_email, level, message, metrics)
+            return False
 
     def _emit_alert(self, level: str, message: str):
         """Emit alert through Socket.IO"""
@@ -128,3 +143,71 @@ class AlertService:
             })
         except Exception as e:
             logger.error(f"Error emitting alert: {str(e)}") 
+
+    def cleanup(self):
+        """Clean up alert service resources"""
+        try:
+            logger.info("Starting alert service cleanup")
+            # Save any pending alerts
+            self._save_pending_alerts()
+            # Clear active alerts
+            self._clear_active_alerts()
+            # Reset service state
+            self._reset_state()
+            logger.info("Alert service cleanup completed")
+        except Exception as e:
+            logger.error(f"Error during alert service cleanup: {str(e)}")
+
+    def _save_pending_alerts(self):
+        """Save any pending alerts before cleanup"""
+        try:
+            if self.pending_alerts:
+                logger.info(f"Saving {len(self.pending_alerts)} pending alerts")
+                for alert in self.pending_alerts:
+                    self._save_alert(
+                        alert['user_email'],
+                        alert['level'],
+                        alert['message'],
+                        alert['metrics']
+                    )
+                self.pending_alerts.clear()
+        except Exception as e:
+            logger.error(f"Error saving pending alerts: {str(e)}")
+
+    def _clear_active_alerts(self):
+        """Clear all active alerts"""
+        try:
+            if self.active_alerts:
+                logger.info(f"Clearing {len(self.active_alerts)} active alerts")
+                for alert_id in self.active_alerts:
+                    try:
+                        # Emit alert cleared event if needed
+                        emit('alert_cleared', {
+                            'alert_id': alert_id,
+                            'timestamp': datetime.utcnow().isoformat()
+                        })
+                    except Exception as e:
+                        logger.error(f"Error clearing alert {alert_id}: {str(e)}")
+                self.active_alerts.clear()
+        except Exception as e:
+            logger.error(f"Error clearing active alerts: {str(e)}")
+
+    def _reset_state(self):
+        """Reset service state"""
+        try:
+            self.db = None
+            self.pending_alerts = []
+            self.active_alerts = set()
+        except Exception as e:
+            logger.error(f"Error resetting alert service state: {str(e)}")
+
+    def add_pending_alert(self, user_email: str, level: str, message: str, metrics: Dict):
+        """Add alert to pending queue if immediate save fails"""
+        self.pending_alerts.append({
+            'user_email': user_email,
+            'level': level,
+            'message': message,
+            'metrics': metrics,
+            'timestamp': datetime.utcnow()
+        })
+  

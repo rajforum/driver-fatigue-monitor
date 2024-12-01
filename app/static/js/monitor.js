@@ -1,6 +1,11 @@
 // Initialize Socket.IO
 const socket = io();
 
+// Session variables
+let sessionStartTime = new Date();
+let alertCount = 0;
+let alertnessValues = [];
+
 // DOM Elements
 const elements = {
     statusDot: document.getElementById('statusDot'),
@@ -20,10 +25,105 @@ const elements = {
     headPositionValue: document.getElementById('headPositionValue'),
     detectionStatusDot: document.getElementById('detectionStatusDot'),
     detectionStatusValue: document.getElementById('detectionStatusValue'),
-    lastUpdatedValue: document.getElementById('lastUpdatedValue')
+    lastUpdatedValue: document.getElementById('lastUpdatedValue'),
+    sessionTime: document.getElementById('sessionTime'),
+    fpsCounter: document.getElementById('fpsCounter'),
+    processingTime: document.getElementById('processingTime'),
+    alertHistory: document.getElementById('alertHistory'),
+    sessionDuration: document.getElementById('sessionDuration'),
+    alertCount: document.getElementById('alertCount'),
+    avgAlertness: document.getElementById('avgAlertness'),
+    avgHeartRate: document.getElementById('avgHeartRate'),
+    alertnessTrend: document.getElementById('alertnessTrend'),
+    headPositionDetails: document.getElementById('headPositionDetails'),
+    detectionDetails: document.getElementById('detectionDetails'),
+    lastUpdateTime: document.getElementById('lastUpdateTime'),
 };
 
-// Socket Connection Handlers
+// Update session time
+function updateSessionTime() {
+    const now = new Date();
+    const diff = now - sessionStartTime;
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    elements.sessionTime.textContent = `Session Time: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    elements.sessionDuration.textContent = elements.sessionTime.textContent.replace('Session Time: ', '');
+}
+
+// Update metrics display
+function updateMetricsDisplay(data) {
+    // Update all metrics
+    if (data.heartRate) {
+        elements.heartRate.textContent = `${data.heartRate} BPM`;
+        elements.heartRate.className = 'text-2xl font-bold text-gray-800';
+    }
+
+    if (data.alertness) {
+        elements.alertness.textContent = `${data.alertness}%`;
+        elements.alertnessValue.textContent = `${data.alertness}%`;
+        alertnessValues.push(parseFloat(data.alertness));
+        updateAlertnessStatistics();
+    }
+
+    if (data.blinkRate) {
+        elements.blinkRateValue.textContent = data.blinkRate;
+        elements.blinkRateValue.className = 'text-2xl font-bold text-gray-800';
+    }
+
+    if (data.eyeClosure) {
+        elements.eyeClosureValue.textContent = data.eyeClosure.replace('s', '');
+        elements.eyeClosureValue.className = 'text-2xl font-bold text-gray-800';
+    }
+
+    if (data.headPosition) {
+        elements.headPositionValue.textContent = data.headPosition;
+        elements.headPositionValue.className = 'text-2xl font-bold text-gray-800';
+        updateHeadPositionDetails(data.headPosition);
+    }
+
+    // Update last update time
+    elements.lastUpdateTime.textContent = new Date().toLocaleTimeString();
+
+    // Update detection status
+    updateDetectionStatus(data);
+}
+
+// Update alertness statistics
+function updateAlertnessStatistics() {
+    if (alertnessValues.length > 0) {
+        const avg = alertnessValues.reduce((a, b) => a + b) / alertnessValues.length;
+        elements.avgAlertness.textContent = `${avg.toFixed(1)}%`;
+
+        // Calculate trend
+        const recentValues = alertnessValues.slice(-5);
+        if (recentValues.length >= 2) {
+            const trend = recentValues[recentValues.length - 1] - recentValues[0];
+            elements.alertnessTrend.textContent = trend > 0 ? '↑ Improving' : trend < 0 ? '↓ Declining' : '→ Stable';
+            elements.alertnessTrend.className = `text-xs ${trend > 0 ? 'text-green-500' : trend < 0 ? 'text-red-500' : 'text-gray-500'}`;
+        }
+    }
+}
+
+// Add alert to history
+function addAlertToHistory(alert) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `p-2 rounded ${alert.level === 'danger' ? 'bg-red-100' : 'bg-yellow-100'}`;
+    alertDiv.innerHTML = `
+        <div class="flex justify-between items-center">
+            <span class="text-sm font-medium">${alert.message}</span>
+            <span class="text-xs text-gray-500">${new Date(alert.timestamp).toLocaleTimeString()}</span>
+        </div>
+    `;
+    elements.alertHistory.insertBefore(alertDiv, elements.alertHistory.firstChild);
+    if (elements.alertHistory.children.length > 5) {
+        elements.alertHistory.removeChild(elements.alertHistory.lastChild);
+    }
+    alertCount++;
+    elements.alertCount.textContent = alertCount;
+}
+
+// Socket event handlers
 socket.on('connect', () => {
     console.log('Connected to server');
     updateConnectionStatus(true);
@@ -34,92 +134,395 @@ socket.on('disconnect', () => {
     updateConnectionStatus(false);
 });
 
-// Metrics Update Handler
 socket.on('metrics_update', (data) => {
-    updateMetrics(data);
-    updateMetricsCard(data);
+    updateMetricsDisplay(data);
+    updatePerformanceMetrics(data);
 });
 
-// Error Handlers
-socket.on('metrics_error', (error) => {
-    console.error('Metrics error:', error);
-    elements.alertStatus.textContent = `Error: ${error.message}`;
-    elements.alertStatus.className = 'text-sm text-red-400';
+socket.on('alert', (data) => {
+    handleAlert(data);
+    addAlertToHistory(data);
 });
 
-socket.on('connect_error', (error) => {
-    console.error('Connection error:', error);
-    updateConnectionStatus(false);
-    elements.monitorStatus.textContent = 'Connection Error';
-    elements.detectionStatusValue.textContent = 'Disconnected';
-    elements.detectionStatusDot.className = 'h-3 w-3 rounded-full mr-2 bg-gray-500';
-});
-
-// Reconnection Handlers
-socket.on('reconnect_attempt', () => {
-    elements.monitorStatus.textContent = 'Reconnecting...';
-});
-
-socket.on('reconnect', () => {
-    updateConnectionStatus(true);
-});
-
-// Helper Functions
-function updateConnectionStatus(isConnected) {
-    elements.statusDot.classList.remove(isConnected ? 'bg-red-500' : 'bg-green-500');
-    elements.statusDot.classList.add(isConnected ? 'bg-green-500' : 'bg-red-500');
-    elements.monitorStatus.textContent = isConnected ? 'Monitoring Active' : 'Disconnected';
-}
-
-function updateMetrics(data) {
-    if (data.heartRate) {
-        elements.heartRate.textContent = `${data.heartRate} BPM`;
-    }
-    if (data.alertness) {
-        elements.alertness.textContent = `${data.alertness}%`;
-    }
-    if (data.blinkRate) {
-        elements.blinkRate.textContent = data.blinkRate;
-    }
-    if (data.eyeClosure) {
-        elements.eyeClosure.textContent = data.eyeClosure;
-    }
-    if (data.headPosition) {
-        elements.headPosition.textContent = data.headPosition;
-    }
-    if (data.alertStatus) {
-        elements.alertStatus.textContent = `Alert Status: ${data.alertStatus}`;
-        elements.alertStatus.className = `text-sm ${data.alertStatus.toLowerCase() === 'normal' ? 'text-green-400' : 'text-red-400'}`;
-    }
-}
-
-function updateMetricsCard(data) {
-    // Update Alertness
-    elements.alertnessValue.textContent = `${data.alertness}%`;
-    elements.alertnessStatus.textContent = data.alertStatus;
-    
-    // Update status styling
-    if (data.alertStatus === 'Normal') {
-        elements.alertnessStatus.className = 'px-2 py-1 text-xs rounded-full bg-green-100 text-green-800';
-        elements.alertnessCard.className = 'p-4 bg-green-50 rounded-lg';
-    } else {
-        elements.alertnessStatus.className = 'px-2 py-1 text-xs rounded-full bg-red-100 text-red-800';
-        elements.alertnessCard.className = 'p-4 bg-red-50 rounded-lg';
-    }
-
-    // Update other metrics
-    elements.blinkRateValue.textContent = data.blinkRate;
-    elements.eyeClosureValue.textContent = data.eyeClosure;
-    elements.headPositionValue.textContent = data.headPosition;
-    
-    // Update detection status
-    elements.detectionStatusDot.className = `h-3 w-3 rounded-full mr-2 ${data.alertStatus === 'Normal' ? 'bg-green-500' : 'bg-red-500'}`;
-    
-    // Update last updated time
-    elements.lastUpdatedValue.textContent = new Date().toLocaleTimeString();
-}
+// Start updating session time
+setInterval(updateSessionTime, 1000);
 
 // Request metrics update every 5 seconds
 setInterval(() => {
     socket.emit('request_metrics');
-}, 5000); 
+}, 3000);
+
+// Initialize
+updateSessionTime();
+
+// Add these functions to monitor.js
+
+function updateDetectionStatus(data) {
+    // Update detection status and details
+    const statusDot = elements.detectionStatusDot;
+    const statusValue = elements.detectionStatusValue;
+    const details = elements.detectionDetails;
+
+    if (data.isDetecting) {
+        statusDot.className = 'h-3 w-3 rounded-full mr-2 bg-green-500';
+        statusValue.textContent = 'Active';
+        statusValue.className = 'text-lg font-bold text-green-600';
+        
+        // Update eye state in details
+        if (data.eyeState) {
+            const eyeStateText = data.eyeState === 'closed' ? 'Eyes Closed!' : 'Eyes Open';
+            const eyeStateColor = data.eyeState === 'closed' ? 'text-red-500' : 'text-green-500';
+            details.innerHTML = `Face Detected - <span class="${eyeStateColor} font-medium">${eyeStateText}</span>`;
+        }
+    } else {
+        statusDot.className = 'h-3 w-3 rounded-full mr-2 bg-red-500';
+        statusValue.textContent = 'No Face Detected';
+        statusValue.className = 'text-lg font-bold text-red-600';
+        details.textContent = 'Searching for face...';
+    }
+}
+
+function updateHeadPositionDetails(position) {
+    const details = elements.headPositionDetails;
+    const positionMessages = {
+        'Centered': 'Proper driving position',
+        'Left': 'Head turned left',
+        'Right': 'Head turned right',
+        'Up': 'Looking up',
+        'Down': 'Looking down - Warning!'
+    };
+
+    const positionColors = {
+        'Centered': 'text-green-500',
+        'Left': 'text-yellow-500',
+        'Right': 'text-yellow-500',
+        'Up': 'text-yellow-500',
+        'Down': 'text-red-500'
+    };
+
+    details.textContent = positionMessages[position] || 'Unknown position';
+    details.className = `text-xs ${positionColors[position] || 'text-gray-500'}`;
+}
+
+function handleAlert(data) {
+    const { level, message } = data;
+    
+    // Update alert status
+    elements.alertStatus.textContent = `Alert Status: ${level.toUpperCase()}`;
+    elements.alertStatus.className = `text-sm ${level === 'normal' ? 'text-green-400' : 'text-red-400'}`;
+
+    // Update alertness card
+    const alertnessCard = elements.alertnessCard;
+    const alertnessStatus = elements.alertnessStatus;
+
+    const colors = {
+        normal: {
+            card: 'bg-green-50',
+            status: 'bg-green-100 text-green-800'
+        },
+        warning: {
+            card: 'bg-yellow-50',
+            status: 'bg-yellow-100 text-yellow-800'
+        },
+        danger: {
+            card: 'bg-red-50',
+            status: 'bg-red-100 text-red-800'
+        }
+    };
+
+    const currentColors = colors[level] || colors.normal;
+    alertnessCard.className = `p-4 rounded-lg ${currentColors.card}`;
+    alertnessStatus.className = `px-2 py-1 text-xs rounded-full ${currentColors.status}`;
+    alertnessStatus.textContent = level.toUpperCase();
+
+    // Play alert sound for warning and danger
+    if (level !== 'normal') {
+        playAlertSound();
+        showNotification("Driver Fatigue Alert", message);
+    }
+}
+
+function playAlertSound() {
+    try {
+        const audio = new Audio('/static/audio/alert.mp3');
+        audio.play();
+    } catch (error) {
+        console.error('Error playing alert sound:', error);
+    }
+}
+
+function showNotification(title, message) {
+    if (Notification.permission === "granted") {
+        new Notification(title, {
+            body: message,
+            icon: "/static/img/alert-icon.png"
+        });
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                showNotification(title, message);
+            }
+        });
+    }
+}
+
+// Add performance metrics update
+function updatePerformanceMetrics(data) {
+    if (data.fps) {
+        elements.fpsCounter.textContent = Math.round(data.fps);
+    }
+    if (data.processingTime) {
+        elements.processingTime.textContent = Math.round(data.processingTime);
+    }
+}
+
+// Chart configurations
+const chartConfigs = {
+    alertness: {
+        chart: null,
+        config: {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Alertness Level',
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    data: []
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        }
+    },
+    heartRate: {
+        chart: null,
+        config: {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Heart Rate (BPM)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1,
+                    data: []
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        }
+    },
+    blinkRate: {
+        chart: null,
+        config: {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Blink Rate',
+                    backgroundColor: 'rgb(153, 102, 255)',
+                    data: []
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Blinks per minute'
+                        }
+                    }
+                }
+            }
+        }
+    },
+    eyeClosure: {
+        chart: null,
+        config: {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Eye Closure Duration',
+                    backgroundColor: 'rgb(255, 159, 64)',
+                    data: []
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Duration (seconds)'
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+// Initialize charts
+function initializeCharts() {
+    chartConfigs.alertness.chart = new Chart(
+        document.getElementById('alertnessChart'),
+        chartConfigs.alertness.config
+    );
+    
+    chartConfigs.heartRate.chart = new Chart(
+        document.getElementById('heartRateChart'),
+        chartConfigs.heartRate.config
+    );
+}
+
+// Update charts with new data
+function updateCharts(trendData) {
+    const { labels, datasets } = trendData;
+    
+    // Update existing charts
+    chartConfigs.alertness.chart.data.labels = labels;
+    chartConfigs.alertness.chart.data.datasets[0].data = datasets.alertness;
+    chartConfigs.alertness.chart.update();
+    
+    chartConfigs.heartRate.chart.data.labels = labels;
+    chartConfigs.heartRate.chart.data.datasets[0].data = datasets.heartRate;
+    chartConfigs.heartRate.chart.update();
+
+    // Update blink rate bar chart
+    chartConfigs.blinkRate.chart.data.labels = labels;
+    chartConfigs.blinkRate.chart.data.datasets[0].data = datasets.blinkRate;
+    chartConfigs.blinkRate.chart.update();
+
+    // Update eye closure scatter plot
+    chartConfigs.eyeClosure.chart.data.datasets[0].data = labels.map((label, i) => ({
+        x: label,
+        y: datasets.eyeClosure[i]
+    }));
+    chartConfigs.eyeClosure.chart.update();
+}
+
+// Socket event for trends
+socket.on('trends_update', (data) => {
+    updateCharts(data);
+});
+
+// Request trends update every 4 seconds
+setInterval(() => {
+    socket.emit('request_trends');
+}, 4000);
+
+// Initialize charts when document is ready
+document.addEventListener('DOMContentLoaded', () => {
+    initializeCharts();
+    socket.emit('request_trends');
+});
+
+// Add trend analysis display
+function updateTrendAnalysis(analysis) {
+    const trendSummary = document.getElementById('trendSummary');
+    const fatigueScore = document.getElementById('fatigueScore');
+    
+    // Update trend summary
+    if (trendSummary) {
+        trendSummary.textContent = analysis.summary;
+        trendSummary.className = `text-sm ${analysis.fatigue_score.level === 'normal' ? 'text-green-600' : 'text-red-600'}`;
+    }
+
+    // Update fatigue score
+    if (fatigueScore) {
+        fatigueScore.textContent = `${analysis.fatigue_score.score}%`;
+        fatigueScore.className = `text-2xl font-bold ${
+            analysis.fatigue_score.level === 'normal' ? 'text-green-600' : 
+            analysis.fatigue_score.level === 'moderate' ? 'text-yellow-600' : 
+            'text-red-600'
+        }`;
+    }
+}
+
+// Add socket event for trend analysis
+socket.on('trend_analysis', (data) => {
+    updateTrendAnalysis(data);
+});
+
+// Add this function near the top with other utility functions
+function updateConnectionStatus(isConnected) {
+    const statusDot = elements.statusDot;
+    const monitorStatus = elements.monitorStatus;
+
+    if (isConnected) {
+        statusDot.className = 'h-3 w-3 bg-green-500 rounded-full';
+        monitorStatus.textContent = 'Connected';
+        monitorStatus.className = 'text-green-600';
+        
+        // Request initial metrics
+        socket.emit('request_metrics');
+        socket.emit('request_trends');
+    } else {
+        statusDot.className = 'h-3 w-3 bg-red-500 rounded-full';
+        monitorStatus.textContent = 'Disconnected';
+        monitorStatus.className = 'text-red-600';
+        
+        // Update UI elements to show disconnected state
+        elements.alertStatus.textContent = 'Connection Lost';
+        elements.alertStatus.className = 'text-sm text-red-400';
+        
+        // Update detection status
+        if (elements.detectionStatusDot && elements.detectionStatusValue) {
+            elements.detectionStatusDot.className = 'h-3 w-3 rounded-full mr-2 bg-gray-500';
+            elements.detectionStatusValue.textContent = 'Connection Lost';
+            elements.detectionStatusValue.className = 'text-lg font-bold text-gray-600';
+            elements.detectionDetails.textContent = 'Waiting for connection...';
+        }
+    }
+}
+
+// Add reconnection handling
+socket.on('connect_error', () => {
+    console.log('Connection error');
+    updateConnectionStatus(false);
+});
+
+socket.on('reconnect', (attemptNumber) => {
+    console.log('Reconnected after', attemptNumber, 'attempts');
+    updateConnectionStatus(true);
+});
+
+socket.on('reconnect_attempt', () => {
+    console.log('Attempting to reconnect...');
+});
+
+socket.on('reconnecting', (attemptNumber) => {
+    console.log('Reconnecting...', attemptNumber);
+    elements.monitorStatus.textContent = `Reconnecting (Attempt ${attemptNumber})...`;
+});
+
+socket.on('reconnect_error', (error) => {
+    console.log('Reconnection error:', error);
+});
+
+socket.on('reconnect_failed', () => {
+    console.log('Failed to reconnect');
+    elements.monitorStatus.textContent = 'Connection Failed';
+    elements.monitorStatus.className = 'text-red-600';
+});
+  

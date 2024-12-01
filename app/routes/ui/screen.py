@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, Response
+from flask import Blueprint, render_template, session, Response, redirect, url_for
 from app.routes.fatigue import login_required
 from app.modules.data_collection import generate_frames
 
@@ -6,17 +6,19 @@ ui_screen_bp = Blueprint('ui_screen', __name__)
 
 @ui_screen_bp.route('/')
 def home():
-    return "Driver Fatigue Monitoring Solution <a href='/google-auth/login'>Login</a>"
+    """Home page route"""
+    return render_template('home.html', active_page='home')
 
 @ui_screen_bp.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html')
+    """Dashboard route that requires login"""
+    return render_template('dashboard.html', active_page='dashboard')
 
 @ui_screen_bp.route('/live')
 @login_required
-def live_monitor():
-    return render_template('live_monitor.html')
+def live():
+    return render_template('live_monitor.html', active_page='live')
 
 @ui_screen_bp.route('/video_feed')
 @login_required

@@ -1,6 +1,7 @@
 import os
 from app.utils.firebase_client import FirebaseClient
-from definition import AUTH2_REDIRECT_URI, CONFIG_DIR
+from definition import CONFIG_DIR
+from app.config import Config
 from flask import Blueprint, Request, redirect, url_for, session, request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -36,7 +37,7 @@ SCOPES = [
 ]
 
 CLIENT_SECRET_PATH = os.path.join(CONFIG_DIR, "client-secret.json")
-flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_PATH, scopes=SCOPES, redirect_uri=AUTH2_REDIRECT_URI)
+flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_PATH, scopes=SCOPES, redirect_uri=Config.GOOGLE_OAUTH_REDIRECT_URI)
 
 
 # Route to initiate the login
@@ -50,7 +51,7 @@ def login():
 @google_auth_bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('google_auth.login'))
+    return redirect(url_for('ui_screen.home'))
 
 # login oauth callback route
 @google_auth_bp.route('/oauth2callback')
@@ -62,13 +63,15 @@ def oauth2callback():
 
 
     credentials = flow.credentials
+    user_info = fetch_user_info(credentials)
+
     session['google_credentials'] = credentials_to_dict(credentials)
+    session['user_info'] = user_info
 
     # Store credentials in Firestore under user email
-    user_info = fetch_user_info(credentials)
     store_user_info(user_info, credentials)
 
-    return redirect(url_for('google_auth.profile'))
+    return redirect(url_for('ui_screen.dashboard'))
 
 @google_auth_bp.route("/home")
 def home():

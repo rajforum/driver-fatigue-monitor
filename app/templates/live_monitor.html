@@ -9,14 +9,58 @@
 <body class="bg-gray-100">
     <!-- Navigation -->
     <nav class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div class="font-bold text-xl text-gray-800">Driver Fatigue Monitor</div>
-            <div class="flex items-center space-x-4">
-                <span class="text-sm text-gray-600">{{ session.get('user_info', {}).get('name', 'User') }}</span>
-                <a href="{{ url_for('google_auth.logout') }}" class="text-sm text-red-600 hover:text-red-800">Logout</a>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Main Navigation -->
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <!-- Logo/Brand -->
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="font-bold text-xl text-gray-800">Driver Fatigue Monitor</span>
+                    </div>
+                    
+                    <!-- Navigation Links -->
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="{{ url_for('ui_screen.home') }}" 
+                           class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Home
+                        </a>
+                        <a href="{{ url_for('ui_screen.dashboard') }}" 
+                           class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Dashboard
+                        </a>
+                        <a href="{{ url_for('ui_screen.live') }}" 
+                           class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Live Monitor
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right side navigation items -->
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500" id="sessionTime">Session Time: 00:00:00</span>
+                    <div class="relative">
+                        <button type="button" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="user-menu-button">
+                            <span class="text-sm text-gray-600">{{ session.get('user_info', {}).get('name', 'User') }}</span>
+                        </button>
+                        <a href="{{ url_for('google_auth.logout') }}" class="text-sm text-red-600 hover:text-red-800 ml-4">Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
+
+    <!-- User Greeting Section -->
+    <div class="bg-gray-50 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center space-x-2">
+                <span class="text-lg text-gray-700">Hello,</span>
+                <span class="text-lg font-semibold text-gray-900">{{ session.get('user_info', {}).get('name', 'User') }}</span>
+                {% if session.get('user_info', {}).get('email') %}
+                    <span class="text-sm text-gray-500">({{ session.get('user_info', {}).get('email') }})</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -25,65 +69,72 @@
             <div class="w-3/5">
                 <div class="bg-black rounded-lg overflow-hidden shadow-lg">
                     <div class="relative h-[480px]">
-                        <img id="videoFeed" src="{{ url_for('ui_screen.login_required_video_feed') }}" alt="Live Feed" class="absolute w-full h-full object-contain">
+                        <img id="videoFeed" src="{{ url_for('ui_screen.video_feed') }}" alt="Live Feed" class="absolute w-full h-full object-contain">
+                        <div id="overlayMetrics" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded">
+                            <div>FPS: <span id="fpsCounter">0</span></div>
+                            <div>Processing Time: <span id="processingTime">0</span>ms</div>
+                        </div>
                     </div>
                     <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
                         <div class="flex items-center space-x-2">
-                            <div id="statusDot" class="h-3 w-3 bg-green-500 rounded-full"></div>
-                            <span id="monitorStatus">Monitoring Active</span>
+                            <div id="statusDot" class="h-3 w-3 bg-gray-500 rounded-full"></div>
+                            <span id="monitorStatus">Initializing...</span>
                         </div>
                         <div class="text-sm">
-                            <span id="alertStatus" class="text-green-400">Alert Status: Normal</span>
+                            <span id="alertStatus" class="text-gray-400">Waiting for data...</span>
                         </div>
                     </div>
                 </div>
 
-                 <!-- New Metrics Summary Card -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
+                <!-- Detection Status Card -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
                     <h2 class="text-lg font-semibold mb-4">Current Detection Status</h2>
                     <div class="grid grid-cols-3 gap-4">
                         <!-- Alertness Status -->
                         <div class="p-4 rounded-lg" id="alertnessCard">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-sm font-medium text-gray-600">Alertness Level</span>
-                                <span class="px-2 py-1 text-xs rounded-full" id="alertnessStatus">Normal</span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-gray-100" id="alertnessStatus">Waiting...</span>
                             </div>
-                            <div class="text-2xl font-bold" id="alertnessValue">--%</div>
+                            <div class="text-2xl font-bold text-gray-400" id="alertnessValue">--%</div>
                         </div>
 
                         <!-- Blink Rate -->
                         <div class="p-4 bg-gray-50 rounded-lg">
                             <div class="text-sm font-medium text-gray-600 mb-2">Blink Rate</div>
-                            <div class="text-2xl font-bold" id="blinkRateValue">--</div>
+                            <div class="text-2xl font-bold text-gray-400" id="blinkRateValue">--</div>
                             <div class="text-xs text-gray-500">blinks/minute</div>
                         </div>
 
                         <!-- Eye Closure -->
                         <div class="p-4 bg-gray-50 rounded-lg">
                             <div class="text-sm font-medium text-gray-600 mb-2">Eye Closure</div>
-                            <div class="text-2xl font-bold" id="eyeClosureValue">--</div>
+                            <div class="text-2xl font-bold text-gray-400" id="eyeClosureValue">--</div>
                             <div class="text-xs text-gray-500">seconds</div>
                         </div>
 
                         <!-- Head Position -->
                         <div class="p-4 bg-gray-50 rounded-lg">
                             <div class="text-sm font-medium text-gray-600 mb-2">Head Position</div>
-                            <div class="text-2xl font-bold" id="headPositionValue">--</div>
+                            <div class="text-2xl font-bold text-gray-400" id="headPositionValue">--</div>
+                            <div id="headPositionDetails" class="text-xs text-gray-500">waiting for data...</div>
                         </div>
 
                         <!-- Detection Status -->
                         <div class="p-4 bg-gray-50 rounded-lg">
                             <div class="text-sm font-medium text-gray-600 mb-2">Detection Status</div>
                             <div class="flex items-center">
-                                <div id="detectionStatusDot" class="h-3 w-3 rounded-full mr-2"></div>
-                                <div class="text-lg font-bold" id="detectionStatusValue">Active</div>
+                                <div id="detectionStatusDot" class="h-3 w-3 bg-gray-400 rounded-full mr-2"></div>
+                                <div class="text-lg font-bold text-gray-400" id="detectionStatusValue">Waiting...</div>
                             </div>
+                            <div id="detectionDetails" class="text-xs text-gray-500 mt-1">Initializing detection...</div>
                         </div>
 
                         <!-- Last Updated -->
                         <div class="p-4 bg-gray-50 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600 mb-2">Last Updated</div>
-                            <div class="text-lg font-bold" id="lastUpdatedValue">--:--:--</div>
+                            <div class="text-sm font-medium text-gray-600 mb-2">Session Info</div>
+                            <div class="text-sm font-bold text-gray-400" id="lastUpdatedValue">--:--:--</div>
+                            <div class="text-xs text-gray-500">Last Update: <span id="lastUpdateTime">--:--:--</span></div>
                         </div>
                     </div>
                 </div>
@@ -91,38 +142,59 @@
 
             <!-- Right Column - Metrics -->
             <div class="w-2/5 space-y-6">
-                <!-- Current Status Card -->
+                <!-- Health Metrics Card -->
                 <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-lg font-semibold mb-4">Current Status</h2>
+                    <h2 class="text-lg font-semibold mb-4">Health Metrics</h2>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center p-4 bg-gray-50 rounded-lg">
                             <div class="text-sm text-gray-600">Heart Rate</div>
-                            <div id="heartRate" class="text-2xl font-bold text-gray-800">-- BPM</div>
+                            <div id="heartRate" class="text-2xl font-bold text-gray-400">-- BPM</div>
+                            <div class="text-xs text-gray-500">Average: <span id="avgHeartRate">--</span> BPM</div>
                         </div>
                         <div class="text-center p-4 bg-gray-50 rounded-lg">
-                            <div class="text-sm text-gray-600">Alertness</div>
-                            <div id="alertness" class="text-2xl font-bold text-green-600">--%</div>
+                            <div class="text-sm text-gray-600">Overall Alertness</div>
+                            <div id="alertness" class="text-2xl font-bold text-gray-400">--%</div>
+                            <div class="text-xs text-gray-500">Trend: <span id="alertnessTrend">--</span></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Real-time Metrics -->
+                <!-- Alert History -->
                 <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-lg font-semibold mb-4">Real-time Metrics</h2>
+                    <h2 class="text-lg font-semibold mb-4">Recent Alerts</h2>
+                    <div id="alertHistory" class="space-y-2 max-h-48 overflow-y-auto">
+                        <!-- Alert history will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Session Statistics</h2>
                     <div class="space-y-4">
-                        <div id="metricsContainer" class="space-y-2">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Blink Rate</span>
-                                <span id="blinkRate" class="text-sm font-medium">--</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Eye Closure Duration</span>
-                                <span id="eyeClosure" class="text-sm font-medium">--</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Head Position</span>
-                                <span id="headPosition" class="text-sm font-medium">--</span>
-                            </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Session Duration</span>
+                            <span id="sessionDuration" class="text-sm font-medium">00:00:00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Alert Events</span>
+                            <span id="alertCount" class="text-sm font-medium">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Average Alertness</span>
+                            <span id="avgAlertness" class="text-sm font-medium">--%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trends -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Trends</h2>
+                    <div class="space-y-4">
+                        <div class="h-48">
+                            <canvas id="alertnessChart"></canvas>
+                        </div>
+                        <div class="h-48">
+                            <canvas id="heartRateChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -132,5 +204,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/monitor.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Update WebSocket connection to use correct path
+        const socket = io({
+            path: '/socket.io'  // Add path if needed
+        });
+    </script>
 </body>
 </html> 

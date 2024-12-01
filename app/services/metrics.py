@@ -8,6 +8,8 @@ from app.services.validation import MetricsValidator
 from app.services.history import MetricsHistory
 from app.services.alerts import AlertService
 from typing import Dict
+from app.services.mock_data import get_mock_metrics as get_fitbit_mock_metrics
+from app.services.fitbit_client import FitbitClient
 
 logger = logging.getLogger(__name__)
 
@@ -23,30 +25,21 @@ def get_mock_metrics():
     }
 
 def get_real_metrics():
+    """Get real metrics from Fitbit API"""
     try:
-        if 'google_credentials' not in session:
-            return {'error': 'Not authenticated'}
+        if 'fitbit_token' not in session:
+            return {'error': 'Not authenticated with Fitbit'}
         
         user_email = session.get('user_info', {}).get('email')
         if not user_email:
             return {'error': 'User email not found'}
 
-        credentials = Credentials(**session['google_credentials'])
-        heart_rate_data = get_fitness_data().get_json()
+        # Get Fitbit data
+        client = FitbitClient(session['fitbit_token'])
+        metrics = client.get_all_metrics()
         
-        # Get raw metrics
-        raw_metrics = {
-            'heartRate': process_heart_rate(heart_rate_data),
-            'alertness': calculate_alertness(),
-            'blinkRate': get_blink_rate(),
-            'eyeClosure': get_eye_closure(),
-            'headPosition': get_head_position(),
-            'alertStatus': determine_alert_status(),
-            'timestamp': datetime.utcnow().isoformat()
-        }
-
         # Validate and sanitize metrics
-        metrics = MetricsValidator.sanitize_metrics(raw_metrics)
+        metrics = MetricsValidator.sanitize_metrics(metrics)
         
         # Save to history
         history = MetricsHistory()
@@ -162,15 +155,37 @@ def determine_alert_status():
         logger.error(f"Error determining alert status: {str(e)}")
         return 'Error'
 
-def get_metrics():
-    """Get metrics based on configuration"""
-    if Config.USE_MOCK_DATA:
-        return get_mock_metrics()
-    return get_real_metrics() 
-
 class MetricsService:
     def __init__(self):
         self.alert_service = AlertService()
+        self.monitoring_active = False
+        self.background_tasks = []
+
+    def cleanup(self):
+        """Clean up metrics service resources"""
+        try:
+            self.stop_monitoring()
+            self.alert_service = None
+        except Exception as e:
+            logger.error(f"Error cleaning up metrics service: {str(e)}")
+
+    def stop_monitoring(self):
+        """Stop all monitoring tasks"""
+        try:
+            self.monitoring_active = False
+            for task in self.background_tasks:
+                task.cancel()
+            self.background_tasks.clear()
+        except Exception as e:
+            logger.error(f"Error stopping monitoring: {str(e)}")
+
+    def get_metrics(self):
+        """Get metrics based on configuration"""
+        if Config.USE_MOCK_DATA:
+            if Config.MOCK_DATA_SOURCE == 'fitbit':
+                return get_fitbit_mock_metrics()
+            return get_mock_metrics()  # Original simple mock data
+        return get_real_metrics() 
 
     def process_metrics(self, raw_metrics: Dict, user_email: str) -> Dict:
         """Process and validate metrics, generate alerts if needed"""
