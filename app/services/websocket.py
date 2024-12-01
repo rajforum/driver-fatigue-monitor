@@ -162,10 +162,12 @@ class SocketService:
                 "heartRate": "75",  # This could be from a different sensor
                 "alertness": f"{metrics.get('alertness', 0)}",
                 "blinkRate": f"{metrics.get('blink_rate', 0)} blinks/min",
-                "yawnCount": f"{metrics.get('yawn_count', 0)} yawn/min",
+                "yawnCount": f"{metrics.get('yawn_count', 0)} yawns/min",
                 "eyeClosure": f"{metrics.get('eye_closure_duration', 0):.1f}s",
                 "headPosition": metrics.get('head_position', 'Unknown'),
-                "alertStatus": "Warning" if metrics.get('alertness', 100) < 70 else "Normal"
+                "alertStatus": "Warning" if metrics.get('alertness', 100) < 70 else "Normal",
+                "isDetecting": metrics.get('isDetecting', False),  # Add detection status
+                "eyeState": metrics.get('eyeState', 'open')  # Add eye state
             }
 
             # Create minimal request environment if needed

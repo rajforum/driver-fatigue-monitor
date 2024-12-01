@@ -178,6 +178,8 @@ function updateDetectionStatus(data) {
             const eyeStateText = data.eyeState === 'closed' ? 'Eyes Closed!' : 'Eyes Open';
             const eyeStateColor = data.eyeState === 'closed' ? 'text-red-500' : 'text-green-500';
             details.innerHTML = `Face Detected - <span class="${eyeStateColor} font-medium">${eyeStateText}</span>`;
+        } else {
+            details.textContent = 'Face Detected';
         }
     } else {
         statusDot.className = 'h-3 w-3 rounded-full mr-2 bg-red-500';
