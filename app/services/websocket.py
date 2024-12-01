@@ -1,5 +1,5 @@
 import json
-from flask import session, current_app
+from flask import request, session, current_app
 from flask.ctx import RequestContext
 from flask_socketio import SocketIO, emit
 from datetime import datetime
@@ -36,10 +36,17 @@ class SocketService:
         @self.socketio.on('connect')
         def handle_connect():
             logger.info('Client connected')
+            self.active_connections.add(request.sid)
             
         @self.socketio.on('disconnect')
         def handle_disconnect():
             logger.info('Client disconnected')
+            self.active_connections.discard(request.sid)
+            
+        @self.socketio.on('ping')
+        def handle_ping():
+            """Handle heartbeat ping from client"""
+            self.socketio.emit('pong')
             
         @self.socketio.on('request_metrics')
         def handle_metrics_request():
@@ -155,6 +162,7 @@ class SocketService:
                 "heartRate": "75",  # This could be from a different sensor
                 "alertness": f"{metrics.get('alertness', 0)}",
                 "blinkRate": f"{metrics.get('blink_rate', 0)} blinks/min",
+                "yawnCount": f"{metrics.get('yawn_count', 0)} yawn/min",
                 "eyeClosure": f"{metrics.get('eye_closure_duration', 0):.1f}s",
                 "headPosition": metrics.get('head_position', 'Unknown'),
                 "alertStatus": "Warning" if metrics.get('alertness', 100) < 70 else "Normal"

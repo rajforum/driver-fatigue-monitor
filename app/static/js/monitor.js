@@ -1,6 +1,3 @@
-// Initialize Socket.IO
-const socket = io();
-
 // Session variables
 let sessionStartTime = new Date();
 let alertCount = 0;
@@ -25,7 +22,6 @@ const elements = {
     headPositionValue: document.getElementById('headPositionValue'),
     detectionStatusDot: document.getElementById('detectionStatusDot'),
     detectionStatusValue: document.getElementById('detectionStatusValue'),
-    lastUpdatedValue: document.getElementById('lastUpdatedValue'),
     sessionTime: document.getElementById('sessionTime'),
     fpsCounter: document.getElementById('fpsCounter'),
     processingTime: document.getElementById('processingTime'),
@@ -38,6 +34,7 @@ const elements = {
     headPositionDetails: document.getElementById('headPositionDetails'),
     detectionDetails: document.getElementById('detectionDetails'),
     lastUpdateTime: document.getElementById('lastUpdateTime'),
+    yawnRateValue: document.getElementById('yawnRateValue'),
 };
 
 // Update session time
@@ -47,8 +44,8 @@ function updateSessionTime() {
     const hours = Math.floor(diff / 3600000);
     const minutes = Math.floor((diff % 3600000) / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
-    elements.sessionTime.textContent = `Session Time: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    elements.sessionDuration.textContent = elements.sessionTime.textContent.replace('Session Time: ', '');
+    elements.sessionTime.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    // elements.sessionDuration.textContent = elements.sessionTime.textContent.replace('Session Time: ', '');
 }
 
 // Update metrics display
@@ -80,6 +77,11 @@ function updateMetricsDisplay(data) {
         elements.headPositionValue.textContent = data.headPosition;
         elements.headPositionValue.className = 'text-2xl font-bold text-gray-800';
         updateHeadPositionDetails(data.headPosition);
+    }
+
+    if (data.yawnCount) {
+        elements.yawnRateValue.textContent = data.yawnCount;
+        elements.yawnRateValue.className = 'text-2xl font-bold text-gray-800';
     }
 
     // Update last update time
@@ -123,40 +125,43 @@ function addAlertToHistory(alert) {
     elements.alertCount.textContent = alertCount;
 }
 
-// Socket event handlers
-socket.on('connect', () => {
-    console.log('Connected to server');
-    updateConnectionStatus(true);
-});
-
-socket.on('disconnect', () => {
-    console.log('Disconnected from server');
-    updateConnectionStatus(false);
-});
-
-socket.on('metrics_update', (data) => {
-    updateMetricsDisplay(data);
-    updatePerformanceMetrics(data);
-});
-
-socket.on('alert', (data) => {
-    handleAlert(data);
-    addAlertToHistory(data);
-});
+// Add Connection Status Banner
+function showReconnectionError() {
+    const monitorStatus = document.getElementById('monitorStatus');
+    const statusDot = document.getElementById('statusDot');
+    
+    if (monitorStatus) {
+        monitorStatus.textContent = 'Connection Failed - Please Refresh';
+        monitorStatus.className = 'text-red-600 font-bold';
+    }
+    
+    if (statusDot) {
+        statusDot.className = 'h-3 w-3 bg-red-500 rounded-full';
+    }
+    
+    // Show a user-friendly error message
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50';
+    alertDiv.innerHTML = `
+        <div class="text-center">
+            <strong class="font-bold block mb-1">Connection Lost!</strong>
+            <span class="block mb-2">Unable to reconnect to server. Please refresh the page.</span>
+            <button onclick="location.reload()" 
+                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors duration-200">
+                Refresh Page
+            </button>
+        </div>
+    `;
+    document.body.appendChild(alertDiv);
+}
 
 // Start updating session time
 setInterval(updateSessionTime, 1000);
-
-// Request metrics update every 5 seconds
-setInterval(() => {
-    socket.emit('request_metrics');
-}, 3000);
 
 // Initialize
 updateSessionTime();
 
 // Add these functions to monitor.js
-
 function updateDetectionStatus(data) {
     // Update detection status and details
     const statusDot = elements.detectionStatusDot;
@@ -421,16 +426,6 @@ function updateCharts(trendData) {
     chartConfigs.eyeClosure.chart.update();
 }
 
-// Socket event for trends
-socket.on('trends_update', (data) => {
-    updateCharts(data);
-});
-
-// Request trends update every 4 seconds
-setInterval(() => {
-    socket.emit('request_trends');
-}, 4000);
-
 // Initialize charts when document is ready
 document.addEventListener('DOMContentLoaded', () => {
     initializeCharts();
@@ -458,11 +453,6 @@ function updateTrendAnalysis(analysis) {
         }`;
     }
 }
-
-// Add socket event for trend analysis
-socket.on('trend_analysis', (data) => {
-    updateTrendAnalysis(data);
-});
 
 // Add this function near the top with other utility functions
 function updateConnectionStatus(isConnected) {
@@ -495,34 +485,3 @@ function updateConnectionStatus(isConnected) {
         }
     }
 }
-
-// Add reconnection handling
-socket.on('connect_error', () => {
-    console.log('Connection error');
-    updateConnectionStatus(false);
-});
-
-socket.on('reconnect', (attemptNumber) => {
-    console.log('Reconnected after', attemptNumber, 'attempts');
-    updateConnectionStatus(true);
-});
-
-socket.on('reconnect_attempt', () => {
-    console.log('Attempting to reconnect...');
-});
-
-socket.on('reconnecting', (attemptNumber) => {
-    console.log('Reconnecting...', attemptNumber);
-    elements.monitorStatus.textContent = `Reconnecting (Attempt ${attemptNumber})...`;
-});
-
-socket.on('reconnect_error', (error) => {
-    console.log('Reconnection error:', error);
-});
-
-socket.on('reconnect_failed', () => {
-    console.log('Failed to reconnect');
-    elements.monitorStatus.textContent = 'Connection Failed';
-    elements.monitorStatus.className = 'text-red-600';
-});
-  

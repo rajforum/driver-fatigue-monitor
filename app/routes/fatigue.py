@@ -2,7 +2,6 @@ from flask import Blueprint, jsonify, redirect, session, url_for
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from datetime import datetime, timedelta
-from app.services.google_health import get_google_fit_data
 from functools import wraps
 import random
 from app.config import Config
@@ -21,12 +20,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@fatigue_bp.route('/health_data')
-@login_required
-def health_data():
-    credentials = Credentials(**session['google_credentials'])
-    data = get_google_fit_data(credentials)
-    return jsonify(data)
 
 @fatigue_bp.route('/fitness_data')
 @login_required

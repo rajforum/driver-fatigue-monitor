@@ -20,6 +20,7 @@ def get_mock_metrics():
         'blinkRate': 'Normal (12/min)',
         'eyeClosure': '0.2s',
         'headPosition': 'Centered',
+        'yawnCount': '0/min',
         'alertStatus': 'Normal',
         'timestamp': datetime.utcnow().isoformat()
     }
@@ -80,9 +81,10 @@ def calculate_alertness():
     """Calculate alertness based on multiple factors"""
     try:
         # Get the required metrics
-        blink_rate = float(get_blink_rate().split()[0])  # Extract numeric value
-        eye_closure = float(get_eye_closure().replace('s', ''))  # Remove 's' and convert
+        blink_rate = float(get_blink_rate().split()[0])
+        eye_closure = float(get_eye_closure().replace('s', ''))
         head_pos = get_head_position()
+        yawn_count = float(get_yawn_count().split()[0])
 
         # Calculate alertness score (0-100)
         score = 100
@@ -101,6 +103,12 @@ def calculate_alertness():
         if head_pos != 'Centered':
             score -= 25
 
+        # Reduce score based on yawning
+        if yawn_count > 3:  # More than 3 yawns per minute
+            score -= 25
+        elif yawn_count > 1:  # 1-3 yawns per minute
+            score -= 15
+
         # Ensure score stays within 0-100
         score = max(0, min(100, score))
         return str(score)
@@ -112,12 +120,11 @@ def calculate_alertness():
 def get_blink_rate():
     """Get blink rate from eye detection"""
     try:
-        # TODO: Get actual blink rate from video processing
-        # For now, return mock data with some variation
-        import random
-        base_rate = 15
-        variation = random.randint(-3, 3)
-        return f"{base_rate + variation}/min"
+        # Get blink rate from the last few seconds of detection
+        from app.modules.fatigue_detector import FatigueDetector
+        detector = FatigueDetector()
+        blink_count = detector.get_blink_count()  # Get blinks in last 60 seconds
+        return f"{blink_count}/min"
     except Exception as e:
         logger.error(f"Error getting blink rate: {str(e)}")
         return "0/min"
@@ -125,20 +132,36 @@ def get_blink_rate():
 def get_eye_closure():
     """Get eye closure duration"""
     try:
-        # TODO: Get actual eye closure from video processing
-        # For now, return mock data with some variation
-        import random
-        base_duration = 0.2
-        variation = random.uniform(-0.1, 0.1)
-        return f"{base_duration + variation:.1f}s"
+        # Get actual eye closure from video processing
+        from app.modules.fatigue_detector import FatigueDetector
+        detector = FatigueDetector()
+        closure_duration = detector.get_eye_closure_duration()
+        return f"{closure_duration:.1f}s"
     except Exception as e:
         logger.error(f"Error getting eye closure: {str(e)}")
         return "0.0s"
 
 def get_head_position():
-    # Get head position from video processing
-    # TODO: Implement actual detection
-    return 'Centered'
+    """Get head position from video processing"""
+    try:
+        from app.modules.fatigue_detector import FatigueDetector
+        detector = FatigueDetector()
+        position = detector.get_head_position()
+        return position  # Should return one of: 'Centered', 'Left', 'Right', 'Up', 'Down'
+    except Exception as e:
+        logger.error(f"Error getting head position: {str(e)}")
+        return 'Centered'
+
+def get_yawn_count():
+    """Get yawn count from detection"""
+    try:
+        from app.modules.fatigue_detector import FatigueDetector
+        detector = FatigueDetector()
+        yawn_count = detector.get_yawn_count()
+        return f"{yawn_count}/min"
+    except Exception as e:
+        logger.error(f"Error getting yawn count: {str(e)}")
+        return "0/min"
 
 def determine_alert_status():
     """Determine alert status based on metrics"""

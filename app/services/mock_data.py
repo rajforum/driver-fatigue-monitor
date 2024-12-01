@@ -173,6 +173,7 @@ def get_mock_metrics():
         'heartRate': str(current_heart_rate),
         'alertness': str(alertness),
         'blinkRate': f"{random.randint(10, 20)}/min",
+        'yawnCount': f"{random.randint(0, 7)}/min",
         'eyeClosure': f"{random.uniform(0.1, 0.4):.1f}s",
         'headPosition': random.choice(['Centered', 'Left', 'Right', 'Up', 'Down']),
         'alertStatus': 'Normal' if alertness > 70 else 'Warning',
