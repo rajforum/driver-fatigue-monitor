@@ -33,7 +33,7 @@ def get_fitness_data():
         fitness_service = build('fitness', 'v1', credentials=credentials)
 
         # Get heart rate data for the last 24 hours
-        end_time = datetime.now()
+        end_time = datetime.utcnow()
         start_time = end_time - timedelta(days=1)
 
         body = {

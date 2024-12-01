@@ -5,18 +5,36 @@ from flask import Blueprint, Request, redirect, url_for, session, request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2 import id_token
 
 google_auth_bp = Blueprint('google_auth', __name__)
 
+# Reference: https://developers.google.com/fit/overview
 SCOPES = [
+    # User Info
     'https://www.googleapis.com/auth/userinfo.email', 
     'https://www.googleapis.com/auth/userinfo.profile',
     'openid',
 
-    # 'https://www.googleapis.com/auth/fitness.activity.read',
-    # 'https://www.googleapis.com/auth/fitness.location.read'
+    # Google Fit - Activity
+    'https://www.googleapis.com/auth/fitness.activity.read',  
+
+    # Google Fit - Location
+    'https://www.googleapis.com/auth/fitness.location.read',
+
+    # Google Fit - Nutrition
+    'https://www.googleapis.com/auth/fitness.nutrition.read',
+
+    # Google Fit - Health
+    'https://www.googleapis.com/auth/fitness.blood_glucose.read',
+    'https://www.googleapis.com/auth/fitness.blood_pressure.read',
+    'https://www.googleapis.com/auth/fitness.body.read',
+    'https://www.googleapis.com/auth/fitness.body_temperature.read',
+    'https://www.googleapis.com/auth/fitness.reproductive_health.read',
+    'https://www.googleapis.com/auth/fitness.heart_rate.read',
+    'https://www.googleapis.com/auth/fitness.oxygen_saturation.read',
+    'https://www.googleapis.com/auth/fitness.sleep.read'
 ]
+
 CLIENT_SECRET_PATH = os.path.join(CONFIG_DIR, "client-secret.json")
 flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_PATH, scopes=SCOPES, redirect_uri=AUTH2_REDIRECT_URI)
 
