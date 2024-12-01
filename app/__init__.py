@@ -34,7 +34,7 @@ def create_app():
     app.register_blueprint(fatigue_bp)
     app.register_blueprint(ui_screen_bp)
 
-    # Initialize WebSocket
+    # Initialize Socket.IO with the app
     init_websocket(app)
 
     return app
