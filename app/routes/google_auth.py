@@ -1,6 +1,7 @@
 import os
+from app.utils.firebase_client import FirebaseClient
 from definition import AUTH2_REDIRECT_URI, CONFIG_DIR
-from flask import Blueprint, redirect, url_for, session, request
+from flask import Blueprint, Request, redirect, url_for, session, request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -18,6 +19,7 @@ SCOPES = [
 ]
 CLIENT_SECRET_PATH = os.path.join(CONFIG_DIR, "client-secret.json")
 flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_PATH, scopes=SCOPES, redirect_uri=AUTH2_REDIRECT_URI)
+
 
 # Route to initiate the login
 @google_auth_bp.route('/login')
@@ -44,6 +46,10 @@ def oauth2callback():
     credentials = flow.credentials
     session['google_credentials'] = credentials_to_dict(credentials)
 
+    # Store credentials in Firestore under user email
+    user_info = fetch_user_info(credentials)
+    store_user_info(user_info, credentials)
+
     return redirect(url_for('google_auth.profile'))
 
 @google_auth_bp.route("/home")
@@ -57,11 +63,16 @@ def profile():
         return redirect(url_for('google_auth.login'))
 
     credentials = Credentials(**session['google_credentials'])
+    
+    # Check if token is expired, if so, refresh it
+    credentials = refresh_access_token(credentials)
+
+    if credentials:
+        session['google_credentials'] = credentials_to_dict(credentials)
 
     # Access user info using the credentials
-    from googleapiclient.discovery import build
-    oauth2_service = build('oauth2', 'v2', credentials=credentials)
-    user_info = oauth2_service.userinfo().get().execute()
+    # Access user info using the credentials
+    user_info = fetch_user_info(credentials)
 
     return f"Welcome, {user_info.get('name')}! Your email is {user_info.get('email')}."
 
@@ -75,3 +86,28 @@ def credentials_to_dict(credentials):
         'client_secret': credentials.client_secret,
         'scopes': credentials.scopes
     }
+
+
+def refresh_access_token(credentials):
+    if credentials and credentials.expired and credentials.refresh_token:
+        credentials.refresh(Request())
+        return credentials
+    return credentials
+
+def fetch_user_info(credentials):
+    # Use credentials to get user info from Google API
+    oauth2_service = build('oauth2', 'v2', credentials=credentials)
+    user_info = oauth2_service.userinfo().get().execute()
+    
+    # Return the user info (you can customize which data you need)
+    return user_info
+
+def store_user_info(user_info, credentials):
+    user_ref = FirebaseClient().get_db().collection('users').document(user_info['email'])
+    user_ref.set({
+        'name': user_info.get('name'),
+        'email': user_info.get('email'),
+        'access_token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_expiry': credentials.expiry
+    })

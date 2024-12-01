@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from app.core.logging_config import setup_logging
 from app.routes.google_auth import google_auth_bp
 from app.routes.fatigue import fatigue_bp
-from app.utils.firebase_client import init_firebase
+from app.utils.firebase_client import FirebaseClient
 
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' # For development only to allow HTTP
@@ -25,8 +25,8 @@ def create_app():
     logger.info("App Starting ::: Fatigue Monitoring Solution is starting...")
     
     # Initialize Firebase client
-    db = init_firebase()
-   
+    FirebaseClient().initialize()
+
     # Register blueprints
     app.register_blueprint(google_auth_bp)
     app.register_blueprint(fatigue_bp)
