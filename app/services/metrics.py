@@ -6,6 +6,8 @@ from google.oauth2.credentials import Credentials
 import logging
 from app.services.validation import MetricsValidator
 from app.services.history import MetricsHistory
+from app.services.alerts import AlertService
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 
@@ -165,3 +167,27 @@ def get_metrics():
     if Config.USE_MOCK_DATA:
         return get_mock_metrics()
     return get_real_metrics() 
+
+class MetricsService:
+    def __init__(self):
+        self.alert_service = AlertService()
+
+    def process_metrics(self, raw_metrics: Dict, user_email: str) -> Dict:
+        """Process and validate metrics, generate alerts if needed"""
+        try:
+            # Validate metrics
+            metrics = MetricsValidator.sanitize_metrics(raw_metrics)
+            
+            # Check for alerts
+            alert_level, alert_message = self.alert_service.check_metrics(metrics, user_email)
+            
+            # Add alert info to metrics
+            metrics.update({
+                'alertLevel': alert_level,
+                'alertMessage': alert_message
+            })
+            
+            return metrics
+        except Exception as e:
+            logger.error(f"Error processing metrics: {str(e)}")
+            return raw_metrics 
