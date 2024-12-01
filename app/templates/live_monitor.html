@@ -24,8 +24,8 @@
             <!-- Left Column - Video Feed -->
             <div class="w-3/5">
                 <div class="bg-black rounded-lg overflow-hidden shadow-lg">
-                    <div class="aspect-w-16 aspect-h-9 bg-gray-900">
-                        <img id="videoFeed" src="{{ url_for('ui_screen.login_required_video_feed') }}" alt="Live Feed" class="w-full h-full object-cover">
+                    <div class="relative h-[480px]">
+                        <img id="videoFeed" src="{{ url_for('ui_screen.login_required_video_feed') }}" alt="Live Feed" class="absolute w-full h-full object-contain">
                     </div>
                     <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
                         <div class="flex items-center space-x-2">
