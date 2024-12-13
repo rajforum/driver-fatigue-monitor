@@ -166,7 +166,7 @@ class SocketService:
                 "eyeClosure": f"{metrics.get('eye_closure_duration', 0):.1f}s",
                 "headPosition": metrics.get('head_position', 'Unknown'),
                 "alertStatus": "Warning" if metrics.get('alertness', 100) < 70 else "Normal",
-                "isDetecting": metrics.get('isDetecting', False),  # Add detection status
+                "isDetecting": metrics.get('isDetecting', True),  # Add detection status
                 "eyeState": metrics.get('eyeState', 'open')  # Add eye state
             }
 

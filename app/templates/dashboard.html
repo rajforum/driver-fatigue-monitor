@@ -1,35 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Fatigue Monitor - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-gray-100">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <span class="font-bold text-xl text-gray-800">Driver Fatigue Monitor</span>
-                    </div>
-                    <div class="ml-6 flex space-x-8">
-                        <a href="{{ url_for('ui_screen.home') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">Home</a>
-                        <a href="{{ url_for('ui_screen.dashboard') }}" class="text-blue-500 hover:text-blue-700 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
-                        <a href="{{ url_for('ui_screen.live') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">Live Monitor</a>
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Fatigue Analysis Card -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Fatigue Analysis</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-48">
+                <div>
+                    <h3 class="text-md font-medium mb-2">Overall Score</h3>
+                    <div id="fatigueScore" class="text-3xl font-bold text-blue-600">--%</div>
+                    <div id="fatigueStatus" class="text-sm text-gray-600 mt-1">Analyzing...</div>
+                </div>
+                <div>
+                    <h3 class="text-md font-medium mb-2">Contributing Factors</h3>
+                    <div id="fatigueFactors" class="space-y-2">
+                        <!-- Factors will be populated dynamically -->
                     </div>
                 </div>
-                <div class="flex items-center">
-                    <a href="{{ url_for('google_auth.logout') }}" class="text-red-600 hover:text-red-800 px-3 py-2 rounded-md text-sm font-medium">Logout</a>
+                <div>
+                    <h3 class="text-md font-medium mb-2">Recommendations</h3>
+                    <ul id="recommendations" class="list-disc list-inside text-sm text-gray-600">
+                        <!-- Recommendations will be populated dynamically -->
+                    </ul>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Heart Rate Card -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             <div class="bg-white rounded-lg shadow p-6">
@@ -111,33 +107,10 @@
                 </div>
             </div>
         </div>
-
-        <!-- Fatigue Analysis Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold mb-4">Fatigue Analysis</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <h3 class="text-md font-medium mb-2">Overall Score</h3>
-                    <div id="fatigueScore" class="text-3xl font-bold text-blue-600">--%</div>
-                    <div id="fatigueStatus" class="text-sm text-gray-600 mt-1">Analyzing...</div>
-                </div>
-                <div>
-                    <h3 class="text-md font-medium mb-2">Contributing Factors</h3>
-                    <div id="fatigueFactors" class="space-y-2">
-                        <!-- Factors will be populated dynamically -->
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-md font-medium mb-2">Recommendations</h3>
-                    <ul id="recommendations" class="list-disc list-inside text-sm text-gray-600">
-                        <!-- Recommendations will be populated dynamically -->
-                    </ul>
-                </div>
-            </div>
-        </div>
     </div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ url_for('static', filename='js/dashboard-script.js') }}"></script>
-</body>
-</html> 
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard-script.js') }}"></script>
+{% endblock %} 

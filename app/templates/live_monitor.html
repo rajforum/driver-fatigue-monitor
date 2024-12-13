@@ -1,53 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Monitoring - Driver Fatigue</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Main Navigation -->
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <!-- Logo/Brand -->
-                    <div class="flex-shrink-0 flex items-center">
-                        <span class="font-bold text-xl text-gray-800">Driver Fatigue Monitor</span>
-                    </div>
-                    
-                    <!-- Navigation Links -->
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="{{ url_for('ui_screen.home') }}" 
-                           class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Home
-                        </a>
-                        <a href="{{ url_for('ui_screen.dashboard') }}" 
-                           class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Dashboard
-                        </a>
-                        <a href="{{ url_for('ui_screen.live') }}" 
-                           class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Live Monitor
-                        </a>
-                    </div>
-                </div>
+{% extends "base.html" %}
 
-                <!-- Right side navigation items -->
-                <div class="flex items-center space-x-4">
-                    <div class="relative">
-                        <button type="button" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="user-menu-button">
-                            <span class="text-sm text-gray-600">{{ session.get('user_info', {}).get('name', 'User') }}</span>
-                        </button>
-                        <a href="{{ url_for('google_auth.logout') }}" class="text-sm text-red-600 hover:text-red-800 ml-4">Logout</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
+{% block content %}
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex gap-6">
@@ -124,11 +77,11 @@
                         </div>
 
                         <!-- Last Updated -->
-                        <div class="p-4 bg-gray-50 rounded-lg">
+                        <!-- <div class="p-4 bg-gray-50 rounded-lg">
                             <div class="text-sm font-medium text-gray-600 mb-2">Session Info</div>
                             <div class="text-xs text-gray-500">Session Duration: <span id="sessionTime">00:00:00</span></div>
                             <div class="text-xs text-gray-500">Last Update Time: <span id="lastUpdateTime">00:00:00</span></div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -152,33 +105,6 @@
                     </div>
                 </div>
 
-                <!-- Alert History -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-lg font-semibold mb-4">Recent Alerts</h2>
-                    <div id="alertHistory" class="space-y-2 max-h-48 overflow-y-auto">
-                        <!-- Alert history will be populated dynamically -->
-                    </div>
-                </div>
-
-                <!-- Statistics -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-lg font-semibold mb-4">Session Statistics</h2>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Session Duration</span>
-                            <span id="sessionDuration" class="text-sm font-medium">00:00:00</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Alert Events</span>
-                            <span id="alertCount" class="text-sm font-medium">0</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Average Alertness</span>
-                            <span id="avgAlertness" class="text-sm font-medium">--%</span>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Trends -->
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <h2 class="text-lg font-semibold mb-4">Trends</h2>
@@ -191,10 +117,41 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Alert History -->
+                <!-- <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Recent Alerts</h2>
+                    <div id="alertHistory" class="space-y-2 max-h-48 overflow-y-auto">
+                        Alert history will be populated dynamically
+                    </div>
+                </div> -->
+
+                <!-- Statistics -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Session Statistics</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Session Duration</span>
+                            <span id="sessionTime" class="text-sm font-medium">00:00:00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Alert Events</span>
+                            <span id="alertCount" class="text-sm font-medium">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Average Alertness</span>
+                            <span id="avgAlertness" class="text-sm font-medium">--%</span>
+                        </div>
+                    </div>
+                </div>
+
+
             </div>
         </div>
     </div>
+{% endblock %}
 
+{% block scripts %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/socket-event.js') }}"></script>
     <script src="{{ url_for('static', filename='js/monitor.js') }}"></script>
@@ -205,5 +162,4 @@
             path: '/socket.io'  // Add path if needed
         });
     </script>
-</body>
-</html> 
+{% endblock %} 

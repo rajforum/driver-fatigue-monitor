@@ -112,7 +112,7 @@ socket.on('metrics_update', (data) => {
 
 socket.on('alert', (data) => {
     handleAlert(data);
-    addAlertToHistory(data);
+    // addAlertToHistory(data);
 });
 
 

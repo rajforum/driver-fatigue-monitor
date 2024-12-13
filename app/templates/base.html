@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Driver Fatigue Monitor{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg border-b border-gray-200 fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <!-- Logo/Brand with adjusted padding -->
+                    <div class="flex-shrink-0 px-2">
+                        <span class="font-bold text-xl text-gray-800 hover:text-blue-600 transition-colors duration-200 whitespace-nowrap">
+                            Driver Fatigue Monitor
+                        </span>
+                    </div>
+
+                    <!-- Navigation Links with reduced spacing -->
+                    <div class="ml-8 flex space-x-8">
+                        <a href="{{ url_for('ui_screen.home') }}" 
+                           class="{% if active_page == 'home' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500{% endif %} hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200">
+                            Home
+                        </a>
+                        {% if session.get('user_info') %}
+                            <a href="{{ url_for('ui_screen.dashboard') }}" 
+                               class="{% if active_page == 'dashboard' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500{% endif %} hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200">
+                                Dashboard
+                            </a>
+                            <a href="{{ url_for('ui_screen.live') }}" 
+                               class="{% if active_page == 'live' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500{% endif %} hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200">
+                                Live Monitor
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Right side navigation with reduced spacing -->
+                <div class="flex items-center pl-4">
+                    {% if session.get('user_info') %}
+                        <div class="flex items-center space-x-3 bg-gray-50 rounded-full px-4 py-2 shadow-sm">
+                            <span class="text-sm font-medium text-gray-700">
+                                {{ session.get('user_info', {}).get('name', 'User') }}
+                            </span>
+                            <a href="{{ url_for('google_auth.logout') }}" 
+                               class="text-sm text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded-full transition-colors duration-200">
+                                Logout
+                            </a>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('google_auth.login') }}" 
+                           class="text-sm bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100 px-4 py-2 rounded-full shadow-sm transition-all duration-200">
+                            Login
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Add padding to account for fixed navbar -->
+    <div class="pt-16">
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html> 
