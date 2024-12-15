@@ -52,6 +52,11 @@ class SocketService:
         def handle_metrics_request():
             from app.services.service_manager import ServiceManager
             try:
+                user_email = session.get('user_info', {}).get('email')
+                if not user_email:
+                    emit('trends_error', {'message': 'User not authenticated'})
+                    return
+                
                 metrics = ServiceManager.get_instance().metrics.get_metrics()
                 if 'error' in metrics:
                     logger.error(f"Error getting metrics: {metrics['error']}")
@@ -103,13 +108,12 @@ class SocketService:
         except Exception as e:
             logger.error(f"Error disconnecting clients: {str(e)}")
 
-    def get_metrics(self):
+    def get_metrics(self, user_email):
         """Get metrics and save for trends"""
         try:
             metrics = get_mock_metrics() if Config.USE_MOCK_DATA else get_real_metrics()
             
             # Save metrics for trends
-            user_email = session.get('user_info', {}).get('email')
             if user_email:
                 self.trend_service.save_metrics_snapshot(user_email, metrics)
             
@@ -145,7 +149,7 @@ class SocketService:
         latest_metrics = {
             "heartRate": "75",  # This could be from a different sensor
             "alertness": f"{new_metrics['alertness']}",
-            "blinkRate": f"{new_metrics['blink_rate']} blinks/min",
+            "blinkRate": f"{new_metrics['blink_rate']}/min",
             "eyeClosure": f"{new_metrics['eye_closure_duration']:.1f}s",
             "headPosition": new_metrics['head_position'],
             "alertStatus": "Warning" if new_metrics['alertness'] < 70 else "Normal"
@@ -154,15 +158,15 @@ class SocketService:
         # Emit to all connected clients
         self.socketio.emit('metrics_update', latest_metrics) 
 
-    def emit_metrics(self, metrics):
+    def emit_metrics(self, metrics, user_info):
         """Emit metrics to all connected clients"""
         try:
             # Convert metrics to frontend format
             formatted_metrics = {
                 "heartRate": "75",  # This could be from a different sensor
                 "alertness": f"{metrics.get('alertness', 0)}",
-                "blinkRate": f"{metrics.get('blink_rate', 0)} blinks/min",
-                "yawnCount": f"{metrics.get('yawn_count', 0)} yawns/min",
+                "blinkRate": f"{metrics.get('blink_rate', 0)}/min",
+                "yawnCount": f"{metrics.get('yawn_count', 0)}/min",
                 "eyeClosure": f"{metrics.get('eye_closure_duration', 0):.1f}s",
                 "headPosition": metrics.get('head_position', 'Unknown'),
                 "alertStatus": "Warning" if metrics.get('alertness', 100) < 70 else "Normal",
@@ -185,14 +189,18 @@ class SocketService:
                     'wsgi.multiprocess': False,
                     'wsgi.run_once': False
                 }
+
                 ctx = self.app.request_context(environ)
                 ctx.push()
                 try:
-                    # Save metrics for trends if user is logged in
-                    if hasattr(session, 'get'):
-                        user_email = session.get('user_info', {}).get('email')
-                        if user_email and self.trend_service:
-                            self.trend_service.save_metrics_snapshot(user_email, formatted_metrics)
+                    # # Save metrics for trends if user is logged in
+                    # if hasattr(session, 'get'):
+                    #     user_email = session.get('user_info', {}).get('email')
+                    #     if user_email and self.trend_service:
+                    #         self.trend_service.save_metrics_snapshot(user_email, formatted_metrics)
+                    user_email = user_info.get('email')
+                    if user_email and self.trend_service:
+                        self.trend_service.save_metrics_snapshot(user_email, formatted_metrics)
                     
                     # Emit to all connected clients
                     self.socketio.emit('metrics_update', formatted_metrics)

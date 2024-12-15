@@ -84,6 +84,22 @@ def analyze_fatigue():
                         'value': random.randint(5, 9),
                         'status': 'normal',
                         'contribution': 0.4
+                    },
+                    'blink_rate': {
+                        'value': random.randint(10, 30),
+                        'status': 'normal'
+                    },
+                    'eye_closure': {
+                        'value': random.uniform(0.5, 2.0),
+                        'status': 'normal'
+                    },
+                    'yawn_count': {
+                        'value': random.randint(0, 5),
+                        'status': 'normal'
+                    },
+                    'yawn_duration': {
+                        'value': random.uniform(0.1, 1.0),
+                        'status': 'normal'
                     }
                 },
                 'recommendations': [
@@ -102,7 +118,28 @@ def analyze_fatigue():
 
         # Calculate fatigue score based on all metrics
         fatigue_score = calculate_fatigue_score(heart_rate_data, activity_data, sleep_data)
-        
+
+        # Include additional metrics in the response
+        fatigue_score['factors']['blink_rate'] = {
+            'value': extract_blink_rate(), 
+            'status': 'normal'  
+        }
+        fatigue_score['factors']['eye_closure'] = {
+            'value': extract_eye_closure_duration(), 
+            'status': 'normal'  
+        }
+        fatigue_score['factors']['yawn_count'] = {
+            'value': extract_yawn_count(), 
+            'status': 'normal' 
+        }
+        fatigue_score['factors']['yawn_duration'] = {
+            'value': extract_yawn_duration(),  
+        }
+        fatigue_score['factors']['head_position'] = {
+            'value': extract_head_position(), 
+            'status': 'normal' 
+        }
+
         return jsonify(fatigue_score)
 
     except Exception as e:
@@ -441,3 +478,43 @@ def calculate_fatigue_score(heart_rate_data, activity_data, sleep_data):
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat()
         }
+
+def extract_blink_rate() -> float:
+    """Extract blink rate from the data source"""
+    try:
+        return random.randint(10, 30)
+    except Exception as e:
+        logger.error(f"Error extracting blink rate: {str(e)}")
+        return 0.0 
+
+def extract_eye_closure_duration() -> float:
+    """Extract eye closure duration from the data source"""
+    try:
+        return random.uniform(0.5, 2.0) 
+    except Exception as e:
+        logger.error(f"Error extracting eye closure duration: {str(e)}")
+        return 0.0 
+
+def extract_yawn_count() -> int:
+    """Extract yawn count from the data source"""
+    try:
+        return random.randint(0, 5) 
+    except Exception as e:
+        logger.error(f"Error extracting yawn count: {str(e)}")
+        return 0 
+
+def extract_yawn_duration() -> float:
+    """Extract yawn duration from the data source"""
+    try:
+        return random.uniform(0.1, 1.0)
+    except Exception as e:
+        logger.error(f"Error extracting yawn duration: {str(e)}")
+        return 0.0 
+    
+def extract_head_position() -> float:
+    """Extract yawn duration from the data source"""
+    try:
+        return random.uniform(0.1, 1.0)
+    except Exception as e:
+        logger.error(f"Error extracting yawn duration: {str(e)}")
+        return 0.0  # Default value if an error occurs

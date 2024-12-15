@@ -27,7 +27,7 @@ class PerformanceMetrics:
             self.processing_times.append(processing_time)
             self.processing_start_time = None
 
-    def get_metrics(self):
+    def get_prf_metrics(self):
         """Get current performance metrics"""
         try:
             if self.frame_times:

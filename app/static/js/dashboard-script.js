@@ -155,7 +155,7 @@ const yawnPatternChart = new Chart(document.getElementById('yawnPatternChart'), 
 const fatigueIndicatorsChart = new Chart(document.getElementById('fatigueIndicatorsChart'), {
     type: 'radar',
     data: {
-        labels: ['Alertness', 'Eye Activity', 'Head Position', 'Yawning', 'Heart Rate'],
+        labels: ['Alertness', 'Eye Activity', 'Yawning', 'Heart Rate'],
         datasets: [{
             label: 'Current State',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -240,7 +240,7 @@ async function updateDashboard() {
             
             // Update factors
             const factorsDiv = document.getElementById('fatigueFactors');
-            factorsDiv.innerHTML = Object.entries(fatigue.factors)
+            factorsDiv.innerHTML = Object.entries(fatigue.factors).slice(0,3)
                 .map(([key, factorValue]) => `
                     <div class="flex justify-between">
                         <span class="text-gray-600">${key}</span>
@@ -280,19 +280,19 @@ async function updateDashboard() {
             // Update Yawn Pattern
             yawnPatternChart.data.labels.push(timeLabel);
             yawnPatternChart.data.datasets[0].data.push(fatigue.factors.yawn_count.value);
-            yawnPatternChart.data.datasets[1].data.push(fatigue.factors.yawn_duration.value);
-            if (yawnPatternChart.data.labels.length > 20) {
-                yawnPatternChart.data.labels.shift();
-                yawnPatternChart.data.datasets[0].data.shift();
-                yawnPatternChart.data.datasets[1].data.shift();
-            }
+            // yawnPatternChart.data.datasets[1].data.push(fatigue.factors.yawn_duration.value);
+            // if (yawnPatternChart.data.labels.length > 20) {
+            //     yawnPatternChart.data.labels.shift();
+            //     yawnPatternChart.data.datasets[0].data.shift();
+            //     yawnPatternChart.data.datasets[1].data.shift();
+            // }
             yawnPatternChart.update();
 
             // Update Fatigue Indicators
             fatigueIndicatorsChart.data.datasets[0].data = [
                 fatigue.score,
                 fatigue.factors.eye_closure.score,
-                fatigue.factors.head_position.score,
+                // fatigue.factors.head_position.score,
                 fatigue.factors.yawn_count.score,
                 heartRate ? parseInt(heartRate) : 70
             ];

@@ -1,7 +1,6 @@
 # app/modules/data_collection.py
 
 import cv2
-from flask import Response
 from app.modules.fatigue_detector import FatigueDetector
 from app.services.performance import PerformanceMetrics
 import logging
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 # Initialize performance metrics
 performance_tracker = PerformanceMetrics()
 
-def generate_frames():
+def generate_frames(user_info):
     """Generate frames from camera for video streaming."""
     try:
         from app.services.service_manager import ServiceManager
@@ -29,7 +28,7 @@ def generate_frames():
             processed_frame, metrics = detector.process_frame(frame)
             
             try:
-                socket_service.emit_metrics(metrics)
+                socket_service.emit_metrics(metrics, user_info)
             except Exception as e:
                 logger.error(f"Error emitting metrics: {str(e)}")
             
@@ -49,5 +48,5 @@ def generate_frames():
 
 def get_current_performance():
     """Get current performance metrics"""
-    return performance_tracker.get_metrics()
+    return performance_tracker.get_prf_metrics()
 

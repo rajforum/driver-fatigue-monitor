@@ -18,6 +18,7 @@ def dashboard():
 @ui_screen_bp.route('/live')
 @login_required
 def live():
+    """Live feed with metrics route that requires login"""
     return render_template('live_monitor.html', active_page='live')
 
 @ui_screen_bp.route('/video_feed')
@@ -25,6 +26,6 @@ def live():
 def video_feed():
     """Video streaming route."""
     return Response(
-        generate_frames(),
+        generate_frames(session.get('user_info', {})),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     ) 
